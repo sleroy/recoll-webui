@@ -16,6 +16,9 @@
         <span>{{label}}<small class="count" data-type="{{key}}"></small></span></label>
       %end
       </div>
+      %active = query['dir'] not in ('<all>', '') or query['after'] or query['before'] or int(query['ascending']) == 1 or query['sort'] != sorts[config['defsortidx']][0]
+      <details class="more" {{'open' if active else ''}}>
+      <summary>Filters{{' •' if active else ''}}</summary>
       <div class="selects">
         <label>Folder
         <select id="folders" name="dir">
@@ -38,11 +41,12 @@
             <option value="1" {{'selected' if int(query['ascending']) == 1 else ''}}>Asc</option>
         </select></label>
       </div>
+      </details>
     </div>
     <input type="hidden" name="page" value="1">
   </form>
   <div class="tools">
-    <button type="button" class="icon" id="theme-toggle" title="Toggle dark / light theme" aria-label="Toggle theme">◐</button>
+    <button type="button" class="icon" id="theme-toggle" title="Toggle dark / light theme" aria-label="Toggle theme">☾</button>
     <button type="button" class="icon" id="help-toggle" title="Keyboard shortcuts (?)" aria-label="Shortcuts">?</button>
     %if not config['rclc_nosettings']:
     <a class="icon" href="settings" title="Settings" aria-label="Settings">⚙</a>

@@ -14,7 +14,14 @@
     var cur = document.documentElement.dataset.theme ||
       (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next; localStorage.setItem('theme', next);
+    document.documentElement.dataset.theme = next; localStorage.setItem('theme', next); themeIcon();
+  }
+
+  function themeIcon() {
+    var b = $('#theme-toggle'); if (!b) return;
+    var d = (document.documentElement.dataset.theme ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+    b.textContent = d ? '☀' : '☾';
   }
 
   /* search history (stored locally in the browser only) */
@@ -100,7 +107,7 @@
       $$('.chip input, #folders, select[name=sort], select[name=ascending], input[type=date]', form)
         .forEach(function (el) { el.addEventListener('change', function () { if ($('#q').value.trim()) form.requestSubmit(); }); });
     }
-    loadFacets();
+    loadFacets(); themeIcon();
 
     var tt = $('#theme-toggle'), ht = $('#help-toggle');
     if (tt) tt.addEventListener('click', toggleTheme);
