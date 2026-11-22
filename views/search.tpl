@@ -4,8 +4,13 @@
 <header class="topbar {{'home-bar' if home else ''}}">
   <a class="brand" href="./"><img src="static/recoll.png" alt="" width="28" height="28"><span>recoll</span></a>
   <form id="searchform" action="results" method="get" role="search">
+    %view = query['view']
+    <div class="views" role="tablist" aria-label="Search mode">
+      <label class="view"><input type="radio" name="view" value="docs" {{'checked' if view != 'files' else ''}}><span>📄 Documents <small>search inside content</small></span></label>
+      <label class="view"><input type="radio" name="view" value="files" {{'checked' if view == 'files' else ''}}><span>🗂 Files <small>search file names</small></span></label>
+    </div>
     <div class="searchrow">
-      <input id="q" type="search" name="query" value="{{query['query']}}" placeholder="Search your documents…" autocomplete="off" list="history" autofocus>
+      <input id="q" type="search" name="query" value="{{query['query']}}" placeholder="{{'Find files by name…' if view == 'files' else 'Search inside your documents…'}}" autocomplete="off" list="history" autofocus>
       <datalist id="history"></datalist>
       <button type="submit" class="primary">Search</button>
     </div>

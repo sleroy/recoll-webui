@@ -303,14 +303,62 @@ def get_query(config=None):
         'page': int(select([bottle.request.query.page, 0], [None, ''])),
         'highlight': int(select([bottle.request.query.highlight, 1], [None, ''])),
         'snippets': int(select([bottle.request.query.snippets, 1], [None, ''])),
+        'view': 'files' if bottle.request.query.view == 'files' else 'docs',
         'type': ','.join(bottle.request.query.getall('type')),
     }
     #msg("query['query'] : %s" % query['query'])
     return query
 #}}}
 #{{{ query_to_recoll_string
+_OPERATORS = ('AND', 'OR', 'NOT')
+
+def filename_terms(text):
+    """Plain search words of a query (no operators, no field:value, no negations)."""
+    try:
+        words = shlex.split(text)
+    except ValueError:
+        words = text.split()
+    return [w for w in words
+            if w not in _OPERATORS and ':' not in w and not w.startswith('-')]
+
+def filename_query(text):
+    """Rewrite a free-text query so every word must match inside the file name."""
+    try:
+        words = shlex.split(text)
+    except ValueError:
+        words = text.split()
+    out = []
+    for w in words:
+        if w in _OPERATORS or w in ('(', ')'):
+            out.append(w)
+        elif ':' in w:
+            out.append(shlex.quote(w) if ' ' in w else w)
+        else:
+            neg = w.startswith('-')
+            w = w.lstrip('-').strip('*').replace('"', '')
+            if not w:
+                continue
+            term = 'filename:"*%s*"' % w if ' ' in w else 'filename:*%s*' % w
+            out.append('-' + term if neg else term)
+    return ' '.join(out)
+
+def highlight_name(name, terms):
+    """HTML-escaped file name with the matching parts wrapped in highlight spans."""
+    import html, re
+    terms = [t.strip('*') for t in terms if t.strip('*')]
+    if not terms:
+        return html.escape(name)
+    rx = re.compile('|'.join(re.escape(t) for t in sorted(terms, key=len, reverse=True)), re.I)
+    out, pos = [], 0
+    for m in rx.finditer(name):
+        out.append(html.escape(name[pos:m.start()]))
+        out.append('<span class="search-result-highlight">%s</span>' % html.escape(m.group()))
+        pos = m.end()
+    out.append(html.escape(name[pos:]))
+    return ''.join(out)
+
 def query_to_recoll_string(q):
-    qs = q['query']
+    qs = filename_query(q['query']) if q.get('view') == 'files' else q['query']
     if len(q['after']) > 0 or len(q['before']) > 0:
         qs += " date:%s/%s" % (q['after'], q['before'])
     pats = [p for t in selected_types(q) for p in TYPE_PATTERNS[t]]
@@ -435,7 +483,10 @@ def recoll_search(q):
         d['group'] = type_group(d['mtype'])
         d['ext'] = (os.path.splitext(d['filename'])[1].lstrip('.') or d['group'])[:5].upper()
         d['path'] = d['url'].replace('file://', '', 1)
-        if 'snippets' in q and q['snippets']:
+        if q.get('view') == 'files':
+            d['label_html'] = highlight_name(d['filename'] or d['label'], filename_terms(q['query']))
+            d['dir'] = os.path.dirname(d['path'])
+        if 'snippets' in q and q['snippets'] and q.get('view') != 'files':
             if highlighter:
                 d['snippet'] = query.makedocabstract(doc, methods=highlighter)
             else:

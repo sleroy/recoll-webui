@@ -183,3 +183,23 @@ button,.btn,input,select{min-height:40px;font-size:1rem}
 .topbar{padding:.7rem 1.4rem}
 @media (max-height:760px){.topbar{position:static}}
 #preview{top:10rem;height:calc(100vh - 11rem)}
+
+/* search mode tabs */
+.views{display:inline-flex;gap:.3rem;margin-bottom:.6rem;padding:.25rem;background:var(--surface2);border-radius:12px}
+.view input{position:absolute;opacity:0;pointer-events:none}
+.view span{display:inline-flex;align-items:baseline;gap:.5em;min-height:40px;align-items:center;padding:.2em 1.1em;border-radius:9px;cursor:pointer;font-weight:600;user-select:none}
+.view small{font-weight:400;color:var(--muted);font-size:.85rem}
+.view input:checked+span{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2);color:var(--accent)}
+.view input:focus-visible+span{outline:2px solid var(--accent)}
+@media (max-width:600px){.view small{display:none}}
+
+/* file-name view: dense rows */
+#results.files{gap:.35rem}
+.filerow{align-items:center;padding:.55rem 1rem;gap:.9rem}
+.filerow .ficon{width:2.6rem;height:2.6rem;padding:0;align-items:center;font-size:.72rem}
+.filerow h3{font-size:1.08rem}
+.fpath{color:var(--muted);font-size:.92rem;direction:rtl;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fmeta{display:flex;flex-direction:column;align-items:flex-end;color:var(--muted);font-size:.9rem;white-space:nowrap;flex:none}
+.filerow .actions{margin:0;flex:none}
+@media (max-width:900px){.filerow{flex-wrap:wrap}.filerow .actions{width:100%}.fmeta{flex-direction:row;gap:.8rem;align-items:center}}
+.fpath,.meta .path{direction:ltr;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}

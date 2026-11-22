@@ -104,7 +104,7 @@
     if (form) {
       form.addEventListener('submit', function () { saveHistory($('#q').value); });
       /* chips and selects re-run the search immediately when there is already a query */
-      $$('.chip input, #folders, select[name=sort], select[name=ascending], input[type=date]', form)
+      $$('.chip input, .view input, #folders, select[name=sort], select[name=ascending], input[type=date]', form)
         .forEach(function (el) { el.addEventListener('change', function () { if ($('#q').value.trim()) form.requestSubmit(); }); });
     }
     loadFacets(); themeIcon();

@@ -4,7 +4,7 @@
 <main id="resultcol">
 <div id="status">
     <div id="found">
-        <b>{{nres}}</b> result{{'' if nres == 1 else 's'}} for <b class="qs">{{qs}}</b>
+        <b>{{nres}}</b> result{{'' if nres == 1 else 's'}} for <b class="qs">{{query['query'] if query['view'] == 'files' else qs}}</b>{{" in file names" if query['view'] == 'files' else ""}}
         <small class="muted">· {{'%.2f' % (time.total_seconds())}}s</small>
     </div>
     %if len(res) > 0 and not config['rclc_nojsoncsv']:
@@ -22,9 +22,9 @@
 </div>
 %end
 %include('pages', query=query, config=config, nres=nres)
-<div id="results">
+<div id="results" class="{{'files' if query['view'] == 'files' else ''}}">
 %for i in range(0, len(res)):
-    %include('result', d=res[i], i=i, query=query, config=config, query_string=query_string)
+    %include('result_file' if query['view'] == 'files' else 'result', d=res[i], i=i, query=query, config=config, query_string=query_string)
 %end
 </div>
 %include('pages', query=query, config=config, nres=nres)
