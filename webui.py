@@ -74,6 +74,7 @@ TYPES = [
     ("image", "Images", ["image/*"]),
     ("mail", "Mail", ["message/rfc822", "application/mbox"]),
 ]
+INLINE_IMAGES = ('image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp')
 TYPE_PATTERNS = {k: pats for k, _, pats in TYPES}
 
 # doc fields
@@ -629,12 +630,15 @@ def _doc_for(resnum):
 def raw(resnum):
     """Serve the document inline (PDF/image/text viewing inside the preview pane)."""
     doc = _doc_for(resnum)
+    # Only formats that cannot run scripts are served inline (no HTML, no SVG): the
+    # browser's PDF viewer does not work inside a sandboxed frame.
+    if doc.mimetype != 'application/pdf' and doc.mimetype not in INLINE_IMAGES:
+        bottle.abort(415, 'not viewable inline')
     xt = rclextract.Extractor(doc)
     path = xt.idoctofile(doc.ipath, doc.mimetype)
     bottle.response.content_type = doc.mimetype
     bottle.response.headers['Content-Disposition'] = 'inline'
     bottle.response.headers['X-Content-Type-Options'] = 'nosniff'
-    bottle.response.headers['Content-Security-Policy'] = "sandbox"
     bottle.response.headers['Content-Length'] = os.stat(path).st_size
     f = open(path, 'rb')
     try:

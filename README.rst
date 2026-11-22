@@ -1,23 +1,89 @@
-Fork notes (sleroy)
-===================
+=====================================
+Recoll WebUI (sleroy fork, redesigned)
+=====================================
 
-Redesigned UI on top of clach04/recoll-webui (Python 3):
+A modern front end for a local `Recoll <https://www.recoll.org>`_ index. Fork of
+`clach04/recoll-webui <https://github.com/clach04/recoll-webui>`_ (itself a Python 3
+update of koniu's original). The search backend and routes are unchanged; the interface
+is new. Original documentation is kept further down.
 
-* Responsive card layout, light/dark theme (follows the system, toggle in the top bar).
-* File-type filter chips (PDF, Office, Text & code, Images, Mail) with live result counts.
-* Split-view preview pane: PDFs and images are shown inline, other documents as
-  highlighted extracted text.
-* Keyboard shortcuts: ``/`` search, ``j``/``k`` move, ``Enter`` preview, ``o`` open,
-  ``f`` folder, ``c`` copy path, arrows for pages, ``?`` for help.
-* "Open" and "Folder" launch the file/folder with ``xdg-open`` on the machine running
-  the web UI (loopback clients, POST, same-origin only, restricted to indexed folders).
-* Native date pickers, local search history, no jQuery.
-* Uses the pip ``bottle`` and the system ``conftree`` (the bundled copies break on
-  Python 3.13+). ``webui-standalone.py`` only shows tracebacks with ``--debug``.
+Features
+========
 
-============
-Recoll WebUI
-============
+* **Two search modes**, selected by tabs above the search box:
+
+  - *Documents* (default): searches inside file contents, with highlighted snippets.
+  - *Files*: searches file names only. Every word is matched anywhere in the name
+    (``contrat`` finds ``Contrats_de_services.odt``). Compact rows show the name with the
+    match highlighted and the full folder path. ``OR``, ``-word``, ``"phrases"`` and
+    ``field:value`` still work.
+
+* **File-type chips** (PDF, Office, Text & code, Images, Mail) with live result counts
+  for the current query. Folder, date range, sort and order sit behind a *Filters*
+  button, which opens by itself when a filter is active.
+* **Preview pane** next to the results: PDFs and raster images are displayed inline,
+  other documents as extracted text with the matches highlighted. It follows the
+  light/dark theme.
+* **Per-result actions** (always visible): Preview, Open, Folder, Download, Copy path.
+
+  *Open* and *Folder* run ``xdg-open`` on the machine hosting the web UI. They only work
+  for loopback clients, by POST, from the page itself (``Origin``/``Referer`` must match
+  ``Host``), and only for files inside the indexed folders.
+
+* **Light and dark themes**, following the system setting, with a toggle in the top bar.
+* **Keyboard shortcuts** (press ``?``): ``/`` focus search, ``j``/``k`` move,
+  ``Enter``/``p`` preview, ``o`` open, ``f`` folder, ``c`` copy path, arrows change page,
+  ``Esc`` closes the preview.
+* Large touch-friendly controls, responsive layout, local search history (kept in the
+  browser only), native date pickers, no jQuery.
+
+Install and run
+===============
+
+Needs Recoll with its Python 3 module (``python3-recoll`` / ``recoll``) and an existing
+index. Create a virtualenv that can see the system module and install the two Python
+dependencies::
+
+   uv venv --python /usr/bin/python3 --system-site-packages .venv
+   uv pip install --python .venv/bin/python waitress bottle
+
+The bundled ``bottle.py`` and ``conftree.py`` were removed: the first imports the ``cgi``
+module that Python 3.13 dropped, the second clashes with the one shipped by Recoll. Recoll's
+``rclconfig`` imports ``conftree`` as a top-level module, so expose it through a small
+directory on ``PYTHONPATH`` (do not point ``PYTHONPATH`` at the whole ``recoll`` package)::
+
+   mkdir -p shim
+   ln -sf "$(python3 -c 'import recoll,os;print(os.path.dirname(recoll.__file__))')/conftree.py" shim/conftree.py
+   PYTHONPATH=$PWD/shim .venv/bin/python webui-standalone.py \
+        -a 127.0.0.1 -p 8780 -c ~/.recoll-synology
+
+``-c`` selects the Recoll configuration directory (default ``~/.recoll``). ``--debug``
+shows tracebacks in the browser. Bind to ``127.0.0.1`` unless you add authentication in
+front: the index usually contains private documents.
+
+Run as a systemd user service
+-----------------------------
+
+``examples/recoll-webui-user.service`` is a ready unit. Adjust the paths, then::
+
+   cp examples/recoll-webui-user.service ~/.config/systemd/user/recoll-webui.service
+   systemctl --user daemon-reload
+   systemctl --user enable --now recoll-webui
+
+Keep the index fresh with a timer that runs ``recollindex -c <confdir>`` (daily is
+enough for most setups).
+
+Notes
+=====
+
+* Templates are cached by bottle: restart the service after editing files in ``views/``.
+* Files: ``webui.py`` (routes and query building), ``views/*.tpl`` (templates),
+  ``static/style.css``, ``static/app.js``, ``static/preview.css`` (preview pane styling).
+* New routes: ``/facets`` (counts per type), ``/raw/<n>`` (inline PDF/images),
+  ``POST /open/<n>`` and ``POST /reveal/<n>``.
+
+Original README
+===============
 
 This (https://framagit.org/medoc92/recollwebui) is an updated clone of
 Koniu's original version on GitHub (https://github.com/koniu/recoll-webui),

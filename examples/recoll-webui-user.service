@@ -1,0 +1,11 @@
+[Unit]
+Description=Recoll WebUI (localhost only)
+
+[Service]
+Environment=PYTHONPATH=%h/git/recoll-webui/shim
+ExecStart=%h/git/recoll-webui/.venv/bin/python %h/git/recoll-webui/webui-standalone.py -a 127.0.0.1 -p 8780 -c %h/.recoll-synology
+Restart=on-failure
+Nice=10
+
+[Install]
+WantedBy=default.target

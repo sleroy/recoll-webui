@@ -68,7 +68,11 @@
   function preview(card) {
     var pv = $('#preview'); if (!pv) return;
     var n = card.dataset.n, group = card.dataset.group;
-    var viewer = (group === 'pdf' || group === 'image') ? 'raw/' + n + '?' + qs() : 'preview/' + n + '?' + qs();
+    var inline = group === 'pdf' || /\.(png|jpe?g|gif|webp|bmp)$/i.test(card.dataset.path);
+    var frame = $('#pv-frame');
+    /* the PDF viewer cannot run in a sandboxed frame; extracted text/HTML stays sandboxed */
+    if (inline) frame.removeAttribute('sandbox'); else frame.setAttribute('sandbox', 'allow-same-origin');
+    var viewer = (inline ? 'raw/' : 'preview/') + n + '?' + qs();
     $('#pv-title').textContent = card.dataset.title;
     $('#pv-frame').src = viewer;
     $('#pv-dl').href = 'download/' + n + '?' + qs();
