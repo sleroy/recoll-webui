@@ -14,7 +14,7 @@
     var cur = document.documentElement.dataset.theme ||
       (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next; localStorage.setItem('theme', next); themeIcon();
+    document.documentElement.dataset.theme = next; localStorage.setItem('theme', next); themeIcon(); syncFrameTheme();
   }
 
   function themeIcon() {
@@ -22,6 +22,16 @@
     var d = (document.documentElement.dataset.theme ||
       (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
     b.textContent = d ? '☀' : '☾';
+  }
+
+  /* the preview iframe is a separate document: hand it the current theme */
+  function effectiveTheme() {
+    return document.documentElement.dataset.theme ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+  function syncFrameTheme() {
+    var f = $('#pv-frame'); if (!f) return;
+    try { f.contentDocument.documentElement.dataset.theme = effectiveTheme(); } catch (e) {}
   }
 
   /* search history (stored locally in the browser only) */
@@ -108,6 +118,7 @@
         .forEach(function (el) { el.addEventListener('change', function () { if ($('#q').value.trim()) form.requestSubmit(); }); });
     }
     loadFacets(); themeIcon();
+    var fr = $('#pv-frame'); if (fr) fr.addEventListener('load', syncFrameTheme);
 
     var tt = $('#theme-toggle'), ht = $('#help-toggle');
     if (tt) tt.addEventListener('click', toggleTheme);

@@ -560,7 +560,7 @@ def preview(resnum):
         pos = txt.find('<head>')
         ssref = '<link rel="stylesheet" type="text/css" href="../static/preview.css">'
         if not ishtml:
-            txt = '<pre class="plain">' + txt + '</pre>'
+            txt = '<pre class="plain">' + txt.replace('<br>', '') + '</pre>'
         if pos >= 0:
             txt = txt[0:pos+6] + ssref + txt[pos+6:]
         else:

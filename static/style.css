@@ -203,3 +203,5 @@ button,.btn,input,select{min-height:40px;font-size:1rem}
 .filerow .actions{margin:0;flex:none}
 @media (max-width:900px){.filerow{flex-wrap:wrap}.filerow .actions{width:100%}.fmeta{flex-direction:row;gap:.8rem;align-items:center}}
 .fpath,.meta .path{direction:ltr;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+
+#pv-frame{background:var(--surface)}
