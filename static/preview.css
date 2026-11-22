@@ -1,0 +1,5 @@
+:root{color-scheme:light dark}
+body{font:15px/1.6 system-ui,sans-serif;margin:1.2rem 1.5rem;max-width:90ch}
+pre.plain{white-space:pre-wrap;word-break:break-word;font:13px/1.55 ui-monospace,monospace;margin:0}
+.search-result-highlight{background:#ffd54a;color:#000;border-radius:2px;padding:0 1px}
+img{max-width:100%}

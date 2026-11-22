@@ -1,45 +1,46 @@
 %include("header", title=" / settings")
-<div id="settings-box">
+<header class="topbar"><a class="brand" href="./"><img src="static/recoll.png" alt="" width="28" height="28"><span>recoll</span></a>
+<h1 class="pagetitle">Settings</h1></header>
+<main class="settings">
 <form action="set" method="get">
-	<b>Find similar</b> <small class="gray">(1 or 0, show "squats" and "squatter")</small>
-	<input name="stem" value={{stem}}>
-	<b>Collapse duplicate results</b> <small class="gray">(1 or 0, only show one of multiple
-        results with same content")</small>
-	<input name="collapsedups" value={{collapsedups}}>
-	<b>Max results</b> <small class="gray">(maximum number of results to show)</small>
-	<input name="maxresults" value={{maxresults}}>
-	<hr>
-	<b>Results per page</b> <small class="gray">(0 for no pagination)</small>
-	<input name="perpage" value={{perpage}}>
-	<b>Context words</b> <small class="gray">(number of words shown in search results)</small>
-	<input name="context" value={{context}}>
-	<b>Context characters</b> <small class="gray">(max characters in a snippet)</small>
-	<input name="maxchars" value={{maxchars}}>
-	<b>Time</b> <small class="gray">(time format string)</small>
-	<input name="timefmt" value={{timefmt}}>
-	<b>Folder depth</b> <small class="gray">(number of levels of the folder dropdown)</small>
-	<input name="dirdepth" value={{dirdepth}}>
-	<b>Default action</b> <small class="gray">(action to take when clicking result title)</small>
-	<select name="title_link">
-		<option value="download" {{'selected' if title_link == 'download' else ''}}>Download</option>
-		<option value="preview" {{'selected' if title_link == 'preview' else ''}}>Preview</option>
-		<option value="open" {{'selected' if title_link == 'open' else ''}}>Open</option>
-	</select>
-	<hr>
-	<b>Locations</b><br>
-	%for d in dirs:
-		<small>{{d}}</small><input name="mount_{{d}}" value={{mounts[d]}}>
-	%end
-	<hr>
-        <b>CSV fields</b> <small class="gray">({{fields}})</small><br>
-        <input name="csvfields" value="{{csvfields}}">
-        <hr>
-	<b>Add to browser</b>
-	<br>
-	<a href="#" onClick="addOpenSearch();return false">Register recoll into browser search engines</a>
-	<br><br><hr>
-	<input type="submit" value="Save">
-	<a href="./"><input type="button" value="Cancel"></a>
+  <fieldset><legend>Search</legend>
+    <label>Find similar words <small>1 or 0, "squats" also finds "squatter"</small>
+      <input name="stem" value="{{stem}}"></label>
+    <label>Collapse duplicates <small>1 or 0, show one result per identical content</small>
+      <input name="collapsedups" value="{{collapsedups}}"></label>
+    <label>Max results <small>0 for unlimited</small>
+      <input name="maxresults" value="{{maxresults}}"></label>
+    <label>Folder depth <small>levels shown in the folder dropdown</small>
+      <input name="dirdepth" value="{{dirdepth}}"></label>
+  </fieldset>
+  <fieldset><legend>Display</legend>
+    <label>Results per page <small>0 for no pagination</small>
+      <input name="perpage" value="{{perpage}}"></label>
+    <label>Context words <small>words shown around each match</small>
+      <input name="context" value="{{context}}"></label>
+    <label>Snippet characters <small>max characters per snippet</small>
+      <input name="maxchars" value="{{maxchars}}"></label>
+    <label>Date format <small>strftime string</small>
+      <input name="timefmt" value="{{timefmt}}"></label>
+    <label>Title click action
+      <select name="title_link">
+        <option value="download" {{'selected' if title_link == 'download' else ''}}>Download</option>
+        <option value="preview" {{'selected' if title_link == 'preview' else ''}}>Preview</option>
+        <option value="open" {{'selected' if title_link == 'open' else ''}}>Open</option>
+      </select></label>
+  </fieldset>
+  <fieldset><legend>Locations</legend>
+    %for d in dirs:
+    <label><small>{{d}}</small><input name="mount_{{d}}" value="{{mounts[d]}}"></label>
+    %end
+  </fieldset>
+  <fieldset><legend>Export &amp; browser</legend>
+    <label>CSV fields <small>{{fields}}</small>
+      <input name="csvfields" value="{{csvfields}}"></label>
+    <p><a href="#" id="opensearch">Register recoll as a browser search engine</a></p>
+  </fieldset>
+  <div class="formbar"><button class="primary" type="submit">Save</button>
+  <a class="btn" href="./">Cancel</a></div>
 </form>
-</div>
+</main>
 %include("footer")

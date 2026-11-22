@@ -1,3 +1,20 @@
+Fork notes (sleroy)
+===================
+
+Redesigned UI on top of clach04/recoll-webui (Python 3):
+
+* Responsive card layout, light/dark theme (follows the system, toggle in the top bar).
+* File-type filter chips (PDF, Office, Text & code, Images, Mail) with live result counts.
+* Split-view preview pane: PDFs and images are shown inline, other documents as
+  highlighted extracted text.
+* Keyboard shortcuts: ``/`` search, ``j``/``k`` move, ``Enter`` preview, ``o`` open,
+  ``f`` folder, ``c`` copy path, arrows for pages, ``?`` for help.
+* "Open" and "Folder" launch the file/folder with ``xdg-open`` on the machine running
+  the web UI (loopback clients, POST, same-origin only, restricted to indexed folders).
+* Native date pickers, local search history, no jQuery.
+* Uses the pip ``bottle`` and the system ``conftree`` (the bundled copies break on
+  Python 3.13+). ``webui-standalone.py`` only shows tracebacks with ``--debug``.
+
 ============
 Recoll WebUI
 ============

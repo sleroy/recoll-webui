@@ -1,7 +1,5 @@
-%import sys
 %from urllib.parse import urlencode
 %import math
-
 %q = dict(query)
 %def page_href(page):
 	%q['page'] = page
@@ -10,20 +8,18 @@
 %if nres > 0:
 	%npages = int(math.ceil(nres/float(config['perpage'])))
 	%if npages > 1:
-		<div id="pages">
-		<a title="First" class="page" href="{{page_href(1)}}">&#171;</a>
-		<a title="Previous" class="page" href="{{page_href(max(1,query['page']-1))}}">&#8249;</a> &nbsp;
-		%offset = ((query['page'])//10)*10
-		%for p in range(max(1,offset), min(offset+10,npages+1)):
-			%if p == query['page']:
-				%cls = "page current"
-			%else:
-				%cls = "page"
-			%end
-			<a href="{{page_href(p)}}" class="{{cls}}">{{p}}</a>
+		%cur = query['page']
+		<nav class="pages" aria-label="Pages">
+		<a title="First" href="{{page_href(1)}}">«</a>
+		<a title="Previous" rel="prev" href="{{page_href(max(1,cur-1))}}">‹</a>
+		%lo = max(1, cur-4)
+		%hi = min(npages, lo+8)
+		%lo = max(1, hi-8)
+		%for p in range(lo, hi+1):
+			<a href="{{page_href(p)}}" class="{{'current' if p == cur else ''}}" {{!'aria-current="page"' if p == cur else ''}}>{{p}}</a>
 		%end
-		&nbsp; <a title="Next" class="page" href="{{page_href(min(npages, query['page']+1))}}">&#8250;</a>
-		<a title="Last" class="page" href="{{page_href(npages)}}">&#187;</a>
-		</div>
+		<a title="Next" rel="next" href="{{page_href(min(npages, cur+1))}}">›</a>
+		<a title="Last" href="{{page_href(npages)}}">»</a>
+		</nav>
 	%end
 %end

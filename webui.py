@@ -63,6 +63,19 @@ SORTS = [
     ("author", "Author"),
 ]
 
+# file type groups used for the filter chips: key, label, recoll mime patterns
+TYPES = [
+    ("pdf", "PDF", ["application/pdf"]),
+    ("office", "Office", ["application/vnd.openxmlformats-officedocument.*",
+                          "application/vnd.oasis.opendocument.*",
+                          "application/msword", "application/vnd.ms-*",
+                          "application/rtf"]),
+    ("text", "Text & code", ["text/*"]),
+    ("image", "Images", ["image/*"]),
+    ("mail", "Mail", ["message/rfc822", "application/mbox"]),
+]
+TYPE_PATTERNS = {k: pats for k, _, pats in TYPES}
+
 # doc fields
 FIELDS = [
     # exposed by python api
@@ -104,6 +117,40 @@ def timestr(secs, fmt):
         secs = '0'
     t = time.gmtime(int(secs))
     return time.strftime(fmt, t)
+
+def human_size(n):
+    try:
+        n = float(n)
+    except (TypeError, ValueError):
+        return ''
+    for unit in ('B', 'KB', 'MB', 'GB'):
+        if n < 1024 or unit == 'GB':
+            return ('%d %s' % (n, unit)) if unit == 'B' else ('%.1f %s' % (n, unit))
+        n /= 1024.0
+
+def type_group(mtype):
+    mtype = mtype or ''
+    if mtype == 'application/pdf':
+        return 'pdf'
+    if mtype.startswith('image/'):
+        return 'image'
+    if mtype in ('message/rfc822', 'application/mbox'):
+        return 'mail'
+    if mtype.startswith('text/'):
+        return 'text'
+    if (mtype.startswith('application/vnd.') or mtype in
+            ('application/msword', 'application/rtf')):
+        return 'office'
+    return 'other'
+
+def selected_types(q):
+    return [t for t in (q.get('type') or '').split(',') if t in TYPE_PATTERNS]
+
+def same_origin():
+    """CSRF guard for state-changing requests: Origin/Referer host must equal Host."""
+    from urllib.parse import urlparse
+    src = bottle.request.headers.get('Origin') or bottle.request.headers.get('Referer')
+    return bool(src) and urlparse(src).netloc == bottle.request.headers.get('Host')
 
 # Compute a file name used for an attachment 'filename' attribute. We don't know what the remote
 # system would accept, so play it safe
@@ -256,6 +303,7 @@ def get_query(config=None):
         'page': int(select([bottle.request.query.page, 0], [None, ''])),
         'highlight': int(select([bottle.request.query.highlight, 1], [None, ''])),
         'snippets': int(select([bottle.request.query.snippets, 1], [None, ''])),
+        'type': ','.join(bottle.request.query.getall('type')),
     }
     #msg("query['query'] : %s" % query['query'])
     return query
@@ -265,6 +313,9 @@ def query_to_recoll_string(q):
     qs = q['query']
     if len(q['after']) > 0 or len(q['before']) > 0:
         qs += " date:%s/%s" % (q['after'], q['before'])
+    pats = [p for t in selected_types(q) for p in TYPE_PATTERNS[t]]
+    if pats:
+        qs += " (%s)" % " OR ".join("mime:" + p for p in pats)
     qdir = q['dir']
     if qdir != '<all>':
         qs += " dir:\"%s\" " % qdir
@@ -380,6 +431,10 @@ def recoll_search(q):
         d['label'] = select([d['title'], d['filename'], '?'], [None, ''])
         d['sha'] = hashlib.sha1((d['url']+d['ipath']).encode('utf-8')).hexdigest()
         d['time'] = timestr(d['mtime'], config['timefmt'])
+        d['hsize'] = human_size(d['fbytes'] or d['size'])
+        d['group'] = type_group(d['mtype'])
+        d['ext'] = (os.path.splitext(d['filename'])[1].lstrip('.') or d['group'])[:5].upper()
+        d['path'] = d['url'].replace('file://', '', 1)
         if 'snippets' in q and q['snippets']:
             if highlighter:
                 d['snippet'] = query.makedocabstract(doc, methods=highlighter)
@@ -409,7 +464,7 @@ def server_static(path):
 def main():
     config = get_config()
     return { 'dirs': get_dirs(config['dirs'], config['dirdepth']),
-            'query': get_query(config), 'sorts': SORTS, 'config': config}
+            'query': get_query(config), 'sorts': SORTS, 'config': config, 'types': TYPES}
 #}}}
 #{{{ results
 @bottle.route('/results')
@@ -427,7 +482,7 @@ def results():
              get_dirs(config['dirs'], config['dirdepth']),
              'qs': qs, 'sorts': SORTS, 'config': config,
              'query_string': bottle.request.query_string, 'nres': nres,
-             'config': config}
+             'types': TYPES}
 #}}}
 #{{{ preview
 @bottle.route('/preview/<resnum:int>')
@@ -452,7 +507,9 @@ def preview(resnum):
         hl = HlMeths()
         txt = rclq.highlight(tdoc.text, ishtml=ishtml, methods=hl)
         pos = txt.find('<head>')
-        ssref = '<link rel="stylesheet" type="text/css" href="../static/style.css">'
+        ssref = '<link rel="stylesheet" type="text/css" href="../static/preview.css">'
+        if not ishtml:
+            txt = '<pre class="plain">' + txt + '</pre>'
         if pos >= 0:
             txt = txt[0:pos+6] + ssref + txt[pos+6:]
         else:
@@ -489,6 +546,83 @@ def edit(resnum):
     except:
         pass
     return f
+#}}}
+#{{{ facets
+@bottle.route('/facets')
+def facets():
+    """Result counts per file type for the current query (ignoring the type filter)."""
+    config = get_config()
+    query = get_query(config)
+    out = {}
+    for key, _label, _pats in TYPES:
+        q = dict(query)
+        q['type'] = key
+        try:
+            out[key] = recoll_initsearch(q).rowcount
+        except Exception:
+            out[key] = 0
+    bottle.response.content_type = 'application/json'
+    return json.dumps(out)
+#}}}
+#{{{ raw (inline view) and local open
+def _doc_for(resnum):
+    config = get_config()
+    query = get_query(config)
+    rclq = recoll_initsearch(query)
+    if resnum > rclq.rowcount - 1:
+        bottle.abort(404, 'Bad result index %d' % resnum)
+    rclq.scroll(resnum)
+    return rclq.fetchone()
+
+@bottle.route('/raw/<resnum:int>')
+def raw(resnum):
+    """Serve the document inline (PDF/image/text viewing inside the preview pane)."""
+    doc = _doc_for(resnum)
+    xt = rclextract.Extractor(doc)
+    path = xt.idoctofile(doc.ipath, doc.mimetype)
+    bottle.response.content_type = doc.mimetype
+    bottle.response.headers['Content-Disposition'] = 'inline'
+    bottle.response.headers['X-Content-Type-Options'] = 'nosniff'
+    bottle.response.headers['Content-Security-Policy'] = "sandbox"
+    bottle.response.headers['Content-Length'] = os.stat(path).st_size
+    f = open(path, 'rb')
+    try:
+        os.unlink(path)
+    except Exception:
+        pass
+    return f
+
+def _local_path(doc):
+    """Real file path of a result, only if it lies under an indexed topdir."""
+    if not doc.url.startswith('file://'):
+        bottle.abort(400, 'not a local file')
+    path = os.path.realpath(doc.url[7:])
+    tops = [os.path.realpath(d) for d in get_config()['dirs']]
+    if not any(path == t or path.startswith(t + os.sep) for t in tops):
+        bottle.abort(403, 'outside indexed folders')
+    return path
+
+def _launch(target):
+    import subprocess
+    subprocess.Popen(['xdg-open', target], stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+
+@bottle.post('/open/<resnum:int>')
+def open_local(resnum):
+    """Open the file with the desktop default application of the machine running the
+    web UI. Only for loopback clients, POST only, same-origin only."""
+    if bottle.request.environ.get('REMOTE_ADDR') not in ('127.0.0.1', '::1') or not same_origin():
+        bottle.abort(403, 'forbidden')
+    _launch(_local_path(_doc_for(resnum)))
+    return {'ok': True}
+
+@bottle.post('/reveal/<resnum:int>')
+def reveal_local(resnum):
+    if bottle.request.environ.get('REMOTE_ADDR') not in ('127.0.0.1', '::1') or not same_origin():
+        bottle.abort(403, 'forbidden')
+    _launch(os.path.dirname(_local_path(_doc_for(resnum))))
+    return {'ok': True}
 #}}}
 #{{{ json
 @bottle.route('/json')
